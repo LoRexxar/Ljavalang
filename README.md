@@ -1,22 +1,20 @@
 # Ljavalang
 
-> 感谢AI时代吧，停止维护的项目可以以非常极低成本的方式继续维护。
-
-> Ljavalang是一个完全由python实现的java源代码parser，用于将java源代码转化为AST结构，用于后续静态分析。
-> Ljavalang是[javalang](https://github.com/c2nes/javalang) 的增强版本，修复上游 AST 构造缺陷并支持 Java 9-22 新语法，并修复了原项目中的所有已知bug。
-
 [![PyPI](https://img.shields.io/pypi/v/ljavalang?color=blue)](https://pypi.org/project/ljavalang/)
 [![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
 [![GitHub Actions](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml/badge.svg?branch=develop)](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml)
 
-## 安装
+> Enhanced fork of [javalang](https://github.com/c2nes/javalang) — fixes core AST bugs, adds Java 9-22 syntax support, zero external dependencies.
+
+## Installation
 
 ```bash
 pip install ljavalang
 ```
-代码中仍然 `import javalang` 使用，与上游完全兼容。
 
-## 快速开始
+The package name is `ljavalang` on PyPI, but the import name remains `javalang` — fully compatible with upstream.
+
+## Quick Start
 
 ```python
 >>> import javalang
@@ -27,9 +25,9 @@ pip install ljavalang
 'Test'
 ```
 
-### 新语法示例
+### New Syntax Examples
 
-**Java 14 switch expression：**
+**Java 14 switch expression:**
 ```python
 >>> code = '''
 ... class T {
@@ -42,21 +40,18 @@ pip install ljavalang
 ...     }
 ... }'''
 >>> tree = javalang.parse.parse(code)
->>> # return 语句中的表达式是 SwitchExpression
 >>> tree.types[0].body[0].body[0].expression
 SwitchExpression
 ```
 
-**Java 16 record：**
+**Java 16 record:**
 ```python
 >>> tree = javalang.parse.parse('record Point(int x, int y) {}')
 >>> tree.types[0]
 RecordDeclaration
->>> tree.types[0].name
-'Point'
 ```
 
-**Java 21 record pattern：**
+**Java 21 record pattern:**
 ```python
 >>> code = '''
 ... class T {
@@ -68,18 +63,18 @@ RecordDeclaration
 ...         }
 ...     }
 ... }'''
->>> javalang.parse.parse(code)  # 正常解析
+>>> javalang.parse.parse(code)  # parses successfully
 ```
 
-**链式调用（核心 bug 修复）：**
+**Chained method calls (core bug fix):**
 ```python
 >>> code = 'class T { void m(String cmd) { Runtime.getRuntime().exec(cmd); } }'
 >>> tree = javalang.parse.parse(code)
->>> # 上游会把 exec 错误地放入 selectors 列表
->>> # Ljavalang 正确解析为嵌套的 MethodInvocation 限定符链
+>>> # Upstream incorrectly places exec in a flat selectors list
+>>> # Ljavalang correctly builds nested MethodInvocation qualifier chain
 ```
 
-### Visitor 模式遍历
+### Visitor Pattern
 
 ```python
 from javalang.visitor import JavaVisitor
@@ -97,7 +92,7 @@ collector.visit(tree)
 print(collector.methods)  # ['foo', 'bar', ...]
 ```
 
-### Token 位置范围
+### Token Position Range
 
 ```python
 from javalang.tokenizer import tokenize
@@ -108,104 +103,172 @@ for token in tokenize(code):
     print(f'{token.value} -> code[{r.start}:{r.stop}] = {code[r]!r}')
 # int -> code[0:3] = 'int'
 # x -> code[4:5] = 'x'
-# = -> code[6:7] = '='
-# 42 -> code[8:10] = '42'
 ```
 
-### AST 节点 end_position
+### AST Node end_position
 
 ```python
 >>> code = 'class T { void m() { try { int x = 1; } catch (Exception e) {} } }'
 >>> tree = javalang.parse.parse(code)
 >>> tree.types[0].end_position
 Position(line=1, column=66, range=slice(65, 66, None))
->>> tree.types[0].body[0].end_position  # MethodDeclaration
-Position(line=1, column=64, range=slice(63, 64, None))
 ```
 
-## 支持的 Java 语法特性
+## Supported Java Syntax
 
 <details>
-<summary>完整列表（点击展开）</summary>
+<summary>Full list (click to expand)</summary>
 
-### Java 8（上游已支持）
-- Lambda 表达式
-- 方法引用
-- 类型注解
-- 接口 default/static 方法
-- 通用 try-with-resources
-- Receiver parameter（`Inner.this` 参数）
+### Java 8 (upstream)
+- Lambda expressions
+- Method references
+- Type annotations
+- Interface default/static methods
+- Generic try-with-resources
+- Receiver parameter (`Inner.this`)
 
 ### Java 9
-- `try`-with-resources effectively final 变量
-- `module-info.java`（module / open module / requires / exports / opens / uses / provides）
-- 接口 private 方法
-- 匿名类 diamond 操作符
+- try-with-resources with effectively final variables
+- module-info.java (module / open module / requires / exports / opens / uses / provides)
+- Interface private methods
+- Anonymous class diamond operator
 
 ### Java 10-11
-- `var` 局部变量类型推断
-- `var` 在 for-each / try-with-resources 中
-- `var` 在 lambda 参数中
+- `var` local variable type inference
+- `var` in for-each / try-with-resources
+- `var` in lambda parameters
 
 ### Java 14
-- Switch expression（`case X ->` 箭头语法）
-- Switch expression 表达式级别（`return switch(...)` / 赋值右值）
-- 多标签 case（`case 1, 2, 3 ->`）
-- `yield` 语句
-- Pattern matching `instanceof`（`obj instanceof String s`）
+- Switch expression (`case X ->` arrow syntax)
+- Switch expression at expression level (`return switch(...)`)
+- Multi-label case (`case 1, 2, 3 ->`)
+- `yield` statement
+- Pattern matching `instanceof` (`obj instanceof String s`)
 
 ### Java 15
-- Text block（`"""..."""` 三引号字符串）
+- Text block (`"""..."""` triple-quoted strings)
 
 ### Java 16
-- `record` 类声明
-- 局部 record / enum（方法体内）
-- record 作为类成员
+- `record` class declaration
+- Local record / enum (inside method body)
+- Record as class member
 
 ### Java 17
 - `sealed` class / interface
-- `permits` 子句
-- `non-sealed` 修饰符
+- `permits` clause
+- `non-sealed` modifier
 
 ### Java 21
-- Pattern matching switch（`case String s ->`）
-- Record pattern 解构（`case Point(int x, int y) ->`）
-- 嵌套 record pattern
-- `case null` 匹配
+- Pattern matching switch (`case String s ->`)
+- Record pattern deconstruction (`case Point(int x, int y) ->`)
+- Nested record patterns
+- `case null` matching
 
 ### Java 22
 - Unnamed variable `_`
-- Unnamed lambda 参数
+- Unnamed lambda parameters
 
 </details>
 
-## 项目结构
+## Key Changes from Upstream
+
+| Category | Details |
+|----------|---------|
+| **Core bug fix** | Chained method calls now produce nested `MethodInvocation` qualifier chains instead of flat `selectors` lists |
+| **Bug fixes** | 6 upstream bugs fixed: #90/#117 (DecimalInteger), #145 (Character token), #81/#112 (type annotations), #141 (void return_type) |
+| **New features** | end_position for 6 AST nodes, Visitor class, Position.range, tokenize return_index, ReceiverParameter, prefix/postfix operators |
+| **Dependencies** | Zero external dependencies (removed `six`) |
+| **Packaging** | Modern `pyproject.toml` (PEP 621), setuptools ≥64.0 |
+| **Tests** | 112 pytest tests (Python 3.9-3.12 CI matrix) |
+
+## Project Structure
 
 ```
 Ljavalang/
-├── pyproject.toml    # 打包配置（PEP 621）
+├── pyproject.toml    # Packaging (PEP 621)
 ├── javalang/
-│   ├── parse.py      # 入口：parse() / parse_expression() 等
-│   ├── parser.py     # 递归下降解析器（~2800 行）
-│   ├── tokenizer.py  # 词法分析器（~700 行）
-│   ├── tree.py       # AST 节点定义（~340 行）
-│   ├── visitor.py    # Visitor 模式遍历
-│   └── test/         # 测试用例（112 个）
-│       ├── test_java_9_syntax.py
-│       ├── test_java_10_11_syntax.py
-│       ├── test_java_14_15_syntax.py
-│       ├── test_java_16_17_syntax.py
-│       ├── test_java_21_syntax.py
-│       ├── test_upstream_issues.py     # 上游 bug 回归测试
-│       └── test_upstream_features.py   # 上游 feature 测试
+│   ├── parse.py      # Entry: parse() / parse_expression()
+│   ├── parser.py     # Recursive descent parser (~2800 lines)
+│   ├── tokenizer.py  # Lexer (~700 lines)
+│   ├── tree.py       # AST node definitions (~340 lines)
+│   ├── visitor.py    # Visitor pattern traversal
+│   └── test/         # 112 test cases
 └── docs/
-    ├── changelog.md              # 版本变更记录
-    ├── architecture.md           # 架构文档
-    ├── java-version-roadmap.md   # 版本支持路线图
-    ├── upstream-issues.md        # 151 个上游 issue 分类
-    ├── upstream-prs.md           # 43 个上游 PR 分析
-    └── issue-fix-progress.md    # 修复进度追踪
+    ├── changelog.md
+    └── architecture.md
 ```
+
+## Credits
+
+Based on [c2nes/javalang](https://github.com/c2nes/javalang) by Chris Thunes.
+
+## License
+
+MIT License
+
+---
+
+# Ljavalang 中文说明
+
+[![PyPI](https://img.shields.io/pypi/v/ljavalang?color=blue)](https://pypi.org/project/ljavalang/)
+[![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
+
+> 感谢 AI 时代，停止维护的项目可以以极低成本继续迭代。
+>
+> Ljavalang 是 [javalang](https://github.com/c2nes/javalang) 的增强 fork，修复上游 AST 构造缺陷并支持 Java 9-22 新语法，零外部依赖。
+
+## 安装
+
+```bash
+pip install ljavalang
+```
+
+PyPI 包名为 `ljavalang`，代码中仍使用 `import javalang`，与上游完全兼容。
+
+## 快速开始
+
+```python
+>>> import javalang
+>>> tree = javalang.parse.parse('package com.example; class Test {}')
+>>> tree.package.name
+'com.example'
+```
+
+## 新语法示例
+
+**Java 14 switch expression：**
+```python
+>>> code = 'class T { int m(int x) { return switch(x) { case 1 -> 10; default -> 0; }; } }'
+>>> tree = javalang.parse.parse(code)
+>>> tree.types[0].body[0].body[0].expression
+SwitchExpression
+```
+
+**Java 16 record：**
+```python
+>>> tree = javalang.parse.parse('record Point(int x, int y) {}')
+>>> tree.types[0]
+RecordDeclaration
+```
+
+**链式调用（核心 bug 修复）：**
+```python
+>>> code = 'class T { void m(String cmd) { Runtime.getRuntime().exec(cmd); } }'
+>>> tree = javalang.parse.parse(code)
+>>> # 上游会把 exec 错误地放入 selectors 列表
+>>> # Ljavalang 正确解析为嵌套的 MethodInvocation 限定符链
+```
+
+## 与上游的差异
+
+| 类别 | 内容 |
+|------|------|
+| **核心修复** | 链式方法调用现在产生嵌套 `MethodInvocation` 限定符链，而非扁平 `selectors` 列表 |
+| **Bug 修复** | 6 个上游 bug：#90/#117 (DecimalInteger)、#145 (Character token)、#81/#112 (类型注解)、#141 (void 返回类型) |
+| **新功能** | 6 个 AST 节点的 end_position、Visitor 类、Position.range、tokenize return_index、ReceiverParameter、前/后缀运算符 |
+| **依赖** | 零外部依赖（已移除 `six`） |
+| **打包** | 现代 `pyproject.toml`（PEP 621） |
+| **测试** | 112 个 pytest 测试（Python 3.9-3.12 CI 矩阵） |
 
 ## 致谢
 
