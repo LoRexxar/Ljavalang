@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools==67.7.2", "wheel"]
+requires = ["setuptools>=64.0,<70", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "ljavalang"
-version = "2.0.1"
+version = "2.0.2"
 description = "Enhanced Java parser with Java 9-22 support, fork of javalang"
 readme = "README.md"
 requires-python = ">=3.9"

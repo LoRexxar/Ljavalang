@@ -2,8 +2,6 @@ import re
 import unicodedata
 from collections import namedtuple
 
-import six
-
 
 class LexerError(Exception):
     pass
@@ -423,7 +421,7 @@ class JavaTokenizer(object):
         codecs = ['utf_8', 'iso-8859-1']
 
         # If data is already unicode don't try to redecode
-        if isinstance(self.data, six.text_type):
+        if isinstance(self.data, str):
             return self.data
 
         for codec in codecs:
@@ -504,7 +502,7 @@ class JavaTokenizer(object):
                     except ValueError:
                         self.error('Invalid unicode escape', data[j:j+4])
 
-                    new_data.append(six.unichr(escape_code))
+                    new_data.append(chr(escape_code))
 
                     i = j + 4
                     j = i

@@ -1,5 +1,3 @@
-import six
-
 from . import util
 from . import tree
 from .tokenizer import (
@@ -19,7 +17,7 @@ def parse_debug(method):
 
             if self.debug:
                 depth = "%02d" % (self.recursion_depth,)
-                token = six.text_type(self.tokens.look())
+                token = str(self.tokens.look())
                 start_value = self.tokens.look().value
                 name = method.__name__
                 sep = ("-" * self.recursion_depth)
@@ -37,11 +35,11 @@ def parse_debug(method):
                     raise
 
                 except Exception as e:
-                    e_message = six.text_type(e)
+                    e_message = str(e)
                     raise
 
                 finally:
-                    token = six.text_type(self.tokens.last())
+                    token = str(self.tokens.last())
                     print("%s <%s %s(%s, %s) %s" %
                         (depth, sep, name, start_value, token, e_message))
                     self.recursion_depth -= 1
@@ -126,7 +124,7 @@ class Parser(object):
 
         for accept in accepts:
             token = next(self.tokens)
-            if isinstance(accept, six.string_types) and (
+            if isinstance(accept, str) and (
                     not token.value == accept):
                 self.illegal("Expected '%s'" % (accept,))
             elif isinstance(accept, type) and not isinstance(token, accept):
@@ -143,7 +141,7 @@ class Parser(object):
         for i, accept in enumerate(accepts):
             token = self.tokens.look(i)
 
-            if isinstance(accept, six.string_types) and (
+            if isinstance(accept, str) and (
                     not token.value == accept):
                 return False
             elif isinstance(accept, type) and not isinstance(token, accept):
@@ -158,7 +156,7 @@ class Parser(object):
         for i, accept in enumerate(accepts):
             token = self.tokens.look(i)
 
-            if isinstance(accept, six.string_types) and (
+            if isinstance(accept, str) and (
                     not token.value == accept):
                 return False
             elif isinstance(accept, type) and not isinstance(token, accept):

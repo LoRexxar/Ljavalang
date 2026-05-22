@@ -2,6 +2,29 @@
 
 All notable changes to Ljavalang are documented in this file.
 
+## [v2.0.2] - 2026-05-22
+
+### 打包与发布
+
+- 替换 `setup.py` + `MANIFEST.in` 为现代 `pyproject.toml`（PEP 621）
+- 发布到 PyPI：`pip install ljavalang`
+- 零外部依赖（移除 `six`）
+
+### 移除 six 依赖
+
+彻底移除 Python 2/3 兼容层 `six`，全部替换为 Python 3 原生写法：
+
+- `parser.py`：`six.text_type()` → `str()`，`six.string_types` → `str`
+- `tokenizer.py`：`six.text_type` → `str`，`six.unichr()` → `chr()`
+- `ast.py`：`@six.add_metaclass(MetaNode)` → `class(metaclass=MetaNode)`
+
+### 其他
+
+- `docs/` 目录从 git 追踪中移除（本地保留，不同步到远程）
+- setuptools 版本范围放宽至 `>=64.0,<70`
+
+---
+
 ## [v2.0.1] - 2026-05-22
 
 ### 上游 Issue 全面修复（151 个 issue 分析）
@@ -44,11 +67,6 @@ All notable changes to Ljavalang are documented in this file.
 
 **确认无需合并（9 项）**
 - `PR #92`（破坏性太大）、`PR #97`（566 行需独立规划）、`PR #104`（已根本解决）等
-
-### 新增文档
-- `docs/upstream-issues.md` — 151 个上游 issue 完整分类分析
-- `docs/upstream-prs.md` — 43 个上游 PR 逐个 diff 分析报告
-- `docs/issue-fix-progress.md` — 修复进度追踪
 
 ### 测试
 - 新增 39 个上游 issue/PR 回归测试（27 bug + 12 feature）
@@ -108,12 +126,6 @@ All notable changes to Ljavalang are documented in this file.
 - 73 个测试用例，覆盖 Java 8-22 全版本语法
 - GitHub Actions CI：Python 3.9 / 3.10 / 3.11 / 3.12 矩阵，每次 commit/PR 自动运行
 - 全版本回归测试 36/36 通过（100%）
-
-### 文档
-
-- 中文 README.md（对比表、新语法示例、项目结构）
-- 架构文档 `docs/architecture.md`
-- 版本路线图 `docs/java-version-roadmap.md`
 
 ---
 
