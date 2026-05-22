@@ -2134,6 +2134,10 @@ class Parser(object):
         elif self.try_accept('new'):
             return self.parse_creator()
 
+        # Java 14+ switch expression (e.g., return switch(x) { case 1 -> 1; })
+        elif self.would_accept('switch'):
+            return self._parse_switch_expression()
+
         elif token.value == '<':
             type_arguments = self.parse_nonwildcard_type_arguments()
 
@@ -2750,3 +2754,23 @@ def _parse_case_value(self):
     return self.parse_expression_2()
 
 Parser._parse_case_value = _parse_case_value
+
+# ------------------------------------------------------------------------------
+# Java 14+ Switch Expression (as primary expression)
+
+def _parse_switch_expression(self):
+    """Parse switch as an expression (Java 14+).
+    Used in: return switch(x) { ... }, int y = switch(x) { ... }, etc.
+    """
+    token = self.tokens.look()
+    self.accept('switch')
+    expression = self.parse_par_expression()
+    self.accept('{')
+    cases = self.parse_switch_block_statement_groups()
+    self.accept('}')
+
+    switch_expr = tree.SwitchExpression(expression=expression, cases=cases)
+    switch_expr._position = token.position
+    return switch_expr
+
+Parser._parse_switch_expression = _parse_switch_expression
