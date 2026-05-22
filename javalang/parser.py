@@ -1394,7 +1394,7 @@ class Parser(object):
 
             i += 1
 
-        if token.value in ('class', 'enum', 'interface', '@'):
+        if token.value in ('class', 'enum', 'interface', 'record', '@'):
             return self.parse_class_or_interface_declaration()
 
         if found_annotations or isinstance(token, BasicType):
