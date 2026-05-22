@@ -1,53 +1,20 @@
 # Ljavalang
 
-> [javalang](https://github.com/c2nes/javalang) 的增强 fork，修复上游 AST 构造缺陷并支持 Java 9-22 新语法，为 [Kunlun-M](https://github.com/LoRexxar/Kunlun-M) 等静态分析工具提供准确的 Java 语法树。
+> 感谢AI时代吧，停止维护的项目可以以非常极低成本的方式继续维护。
+> [javalang](https://github.com/c2nes/javalang) 的增强版本，修复上游 AST 构造缺陷并支持 Java 9-22 新语法
 
 [![PyPI](https://img.shields.io/pypi/v/ljavalang?color=blue)](https://pypi.org/project/ljavalang/)
 [![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
 [![GitHub Actions](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml/badge.svg?branch=develop)](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml)
-
-## 与上游的区别
-
-| 特性 | 上游 javalang | Ljavalang |
-|------|:---:|:---:|
-| Java 8 语法 | ✅ | ✅ |
-| **链式调用修复** | ❌ `a.b().c()` 解析为扁平 selectors | ✅ 正确嵌套为限定符链 |
-| **Java 9** TWR effectively final | ❌ | ✅ |
-| **Java 9** module-info | ❌ | ✅ |
-| **Java 10** var 类型推断 | ❌ | ✅ |
-| **Java 14** switch expression (arrow/yield) | ❌ | ✅ |
-| **Java 14** pattern matching instanceof | ❌ | ✅ |
-| **Java 15** text block (三引号字符串) | ❌ | ✅ |
-| **Java 16** record class | ❌ | ✅ |
-| **Java 17** sealed / permits / non-sealed | ❌ | ✅ |
-| **Java 21** pattern matching switch | ❌ | ✅ |
-| **Java 21** record pattern (解构) | ❌ | ✅ |
-| **Java 22** unnamed variable `_` | ❌ | ✅ |
-| **上游 issue 修复** | 部分未修复 | ✅ 全部 151 issue 已分析，6 bug 已修复 |
-| **end_position** | ❌ | ✅ TryStatement/MethodDeclaration 等节点 |
-| **Token 位置范围** | ❌ | ✅ `Position.range` |
-| **Visitor 模式** | ❌ | ✅ `javalang.visitor.JavaVisitor` |
-| **Receiver parameter** | ❌ | ✅ Java 8 `Type.this` 参数 |
 
 ## 安装
 
 ```bash
 pip install ljavalang
 ```
-
-> 包名为 `ljavalang`（小写），代码中仍然 `import javalang` 使用，与上游完全兼容。
-
-开发安装：
-
-```bash
-git clone https://github.com/LoRexxar/Ljavalang.git
-cd Ljavalang
-pip install -e .
-```
+代码中仍然 `import javalang` 使用，与上游完全兼容。
 
 ## 快速开始
-
-用法与上游 javalang 完全兼容：
 
 ```python
 >>> import javalang
@@ -154,23 +121,6 @@ Position(line=1, column=66, range=slice(65, 66, None))
 Position(line=1, column=64, range=slice(63, 64, None))
 ```
 
-## 测试
-
-```bash
-# 运行全部测试（112 个用例）
-python -m pytest javalang/test/ -v \
-  --ignore=javalang/test/test_java_8_syntax.py \
-  --ignore=javalang/test/test_package_declaration.py
-
-# 仅运行特定版本的测试
-python -m pytest javalang/test/test_java_21_syntax.py -v
-
-# 仅运行上游 issue 回归测试
-python -m pytest javalang/test/test_upstream_issues.py javalang/test/test_upstream_features.py -v
-```
-
-测试覆盖矩阵：Python 3.9 / 3.10 / 3.11 / 3.12，通过 GitHub Actions 自动运行。
-
 ## 支持的 Java 语法特性
 
 <details>
@@ -257,8 +207,8 @@ Ljavalang/
 
 ## 致谢
 
-基于 [c2nes/javalang](https://github.com/c2nes/javalang)（作者 Chris Thunes）开发，为 [Kunlun-M](https://github.com/LoRexxar/Kunlun-M) 白盒扫描器提供 Java 解析支持。
+基于 [c2nes/javalang](https://github.com/c2nes/javalang)（作者 Chris Thunes）开发
 
 ## License
 
-MIT License（继承自上游）
+MIT License
