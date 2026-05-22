@@ -1,7 +1,7 @@
 # Ljavalang 项目架构文档
 
-> 本文档基于 `develop` 分支（commit `b7e339f`），对 Ljavalang 的项目结构、核心模块、数据流进行梳理。
-> Ljavalang 是 [javalang](https://github.com/c2nes/javalang) 的 fork，目标是修复上游的 AST 构造缺陷，为 Kunlun-M 的 Java 静态分析提供准确的语法树。
+> 本文档基于 `develop` 分支（commit `eded03a`），对 Ljavalang 的项目结构、核心模块、数据流进行梳理。
+> Ljavalang 是 [javalang](https://github.com/c2nes/javalang) 的 fork，目标是修复上游的 AST 构造缺陷并支持 Java 9-21 新语法，为 Kunlun-M 的 Java 静态分析提供准确的语法树。
 
 ---
 
