@@ -4,6 +4,8 @@
 [![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
 [![GitHub Actions](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml/badge.svg?branch=develop)](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml)
 
+**[English](README.md)** | [中文](README.zh.md)
+
 > Enhanced fork of [javalang](https://github.com/c2nes/javalang) — fixes core AST bugs, adds Java 9-22 syntax support, zero external dependencies.
 
 ## Installation
@@ -201,78 +203,6 @@ Ljavalang/
 ## Credits
 
 Based on [c2nes/javalang](https://github.com/c2nes/javalang) by Chris Thunes.
-
-## License
-
-MIT License
-
----
-
-# Ljavalang 中文说明
-
-[![PyPI](https://img.shields.io/pypi/v/ljavalang?color=blue)](https://pypi.org/project/ljavalang/)
-[![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
-
-> 感谢 AI 时代，停止维护的项目可以以极低成本继续迭代。
->
-> Ljavalang 是 [javalang](https://github.com/c2nes/javalang) 的增强 fork，修复上游 AST 构造缺陷并支持 Java 9-22 新语法，零外部依赖。
-
-## 安装
-
-```bash
-pip install ljavalang
-```
-
-PyPI 包名为 `ljavalang`，代码中仍使用 `import javalang`，与上游完全兼容。
-
-## 快速开始
-
-```python
->>> import javalang
->>> tree = javalang.parse.parse('package com.example; class Test {}')
->>> tree.package.name
-'com.example'
-```
-
-## 新语法示例
-
-**Java 14 switch expression：**
-```python
->>> code = 'class T { int m(int x) { return switch(x) { case 1 -> 10; default -> 0; }; } }'
->>> tree = javalang.parse.parse(code)
->>> tree.types[0].body[0].body[0].expression
-SwitchExpression
-```
-
-**Java 16 record：**
-```python
->>> tree = javalang.parse.parse('record Point(int x, int y) {}')
->>> tree.types[0]
-RecordDeclaration
-```
-
-**链式调用（核心 bug 修复）：**
-```python
->>> code = 'class T { void m(String cmd) { Runtime.getRuntime().exec(cmd); } }'
->>> tree = javalang.parse.parse(code)
->>> # 上游会把 exec 错误地放入 selectors 列表
->>> # Ljavalang 正确解析为嵌套的 MethodInvocation 限定符链
-```
-
-## 与上游的差异
-
-| 类别 | 内容 |
-|------|------|
-| **核心修复** | 链式方法调用现在产生嵌套 `MethodInvocation` 限定符链，而非扁平 `selectors` 列表 |
-| **Bug 修复** | 6 个上游 bug：#90/#117 (DecimalInteger)、#145 (Character token)、#81/#112 (类型注解)、#141 (void 返回类型) |
-| **新功能** | 6 个 AST 节点的 end_position、Visitor 类、Position.range、tokenize return_index、ReceiverParameter、前/后缀运算符 |
-| **依赖** | 零外部依赖（已移除 `six`） |
-| **打包** | 现代 `pyproject.toml`（PEP 621） |
-| **测试** | 112 个 pytest 测试（Python 3.9-3.12 CI 矩阵） |
-
-## 致谢
-
-基于 [c2nes/javalang](https://github.com/c2nes/javalang)（作者 Chris Thunes）开发
 
 ## License
 
