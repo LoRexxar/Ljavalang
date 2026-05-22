@@ -42,13 +42,24 @@ class Keyword(JavaToken):
                   'new', 'package', 'private', 'protected', 'public', 'return',
                   'short', 'static', 'strictfp', 'super', 'switch',
                   'synchronized', 'this', 'throw', 'throws', 'transient', 'try',
-                  'void', 'volatile', 'while'])
+                  'void', 'volatile', 'while',
+                  # Java 9+ module keywords
+                  'module', 'requires', 'exports', 'opens', 'to',
+                  'uses', 'provides', 'with', 'transitive',
+                  # Java 14+ yield
+                  'yield',
+                  # Java 16+ record
+                  'record',
+                  # Java 17+ sealed (non-sealed handled as 3 tokens in parser)
+                  'sealed', 'permits'])
 
 
 class Modifier(Keyword):
     VALUES = set(['abstract', 'default', 'final', 'native', 'private',
                   'protected', 'public', 'static', 'strictfp', 'synchronized',
-                  'transient', 'volatile'])
+                  'transient', 'volatile',
+                  # Java 17+ sealed modifier
+                  'sealed'])
 
 class BasicType(Keyword):
     VALUES = set(['boolean', 'byte', 'char', 'double',

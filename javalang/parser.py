@@ -267,6 +267,7 @@ class Parser(object):
         javadoc = None
         import_declarations = list()
         type_declarations = list()
+        module_declaration = None
 
         self.tokens.push_marker()
         next_token = self.tokens.look()
@@ -297,6 +298,49 @@ class Parser(object):
             import_declaration._position = token.position
             import_declarations.append(import_declaration)
 
+        # Java 9+ module declaration
+        # module-info.java: [open] module name { ... }
+        # 'open' is not a keyword, so check Identifier value too
+        next_tok = self.tokens.look()
+        is_module = False
+        if isinstance(next_tok, Keyword) and next_tok.value == 'module':
+            is_module = True
+        elif isinstance(next_tok, Identifier) and next_tok.value == 'open':
+            # Check if 'open module ...'
+            tok1 = self.tokens.look(1)
+            if isinstance(tok1, Keyword) and tok1.value == 'module':
+                is_module = True
+        elif self.is_annotation():
+            # Check for @Annotation module ... or @Annotation open module ...
+            with self.tokens:
+                try:
+                    self.parse_annotations()
+                    t = self.tokens.look()
+                    if isinstance(t, Keyword) and t.value == 'module':
+                        is_module = True
+                    elif isinstance(t, Identifier) and t.value == 'open':
+                        t1 = self.tokens.look(1)
+                        if isinstance(t1, Keyword) and t1.value == 'module':
+                            is_module = True
+                except:
+                    pass
+            # Need to re-check after backtracking
+            if is_module:
+                with self.tokens:
+                    pass  # discard marker
+
+        if is_module:
+            module_annotations = list()
+            if self.is_annotation():
+                module_annotations = self.parse_annotations()
+            if isinstance(self.tokens.look(), Identifier) and self.tokens.look().value == 'open':
+                # consume 'open' identifier as if it were a keyword
+                self.tokens.next()
+                is_open_kw = True
+            else:
+                is_open_kw = False
+            module_declaration = self._parse_module_declaration(module_annotations, is_open_kw)
+
         while not isinstance(self.tokens.look(), EndOfInput):
             try:
                 type_declaration = self.parse_type_declaration()
@@ -308,7 +352,8 @@ class Parser(object):
 
         return tree.CompilationUnit(package=package,
                                     imports=import_declarations,
-                                    types=type_declarations)
+                                    types=type_declarations,
+                                    module=module_declaration)
 
     @parse_debug
     def parse_import_declaration(self):
@@ -358,6 +403,8 @@ class Parser(object):
             type_declaration = self.parse_enum_declaration()
         elif token.value == 'interface':
             type_declaration = self.parse_normal_interface_declaration()
+        elif token.value == 'record':
+            type_declaration = self.parse_record_declaration()
         elif self.is_annotation_declaration():
             type_declaration = self.parse_annotation_type_declaration()
         else:
@@ -376,6 +423,7 @@ class Parser(object):
         type_params = None
         extends = None
         implements = None
+        permits = None
         body = None
 
         self.accept('class')
@@ -391,12 +439,17 @@ class Parser(object):
         if self.try_accept('implements'):
             implements = self.parse_type_list()
 
+        # Java 17+ sealed class permits clause
+        if self.try_accept('permits'):
+            permits = self.parse_type_list()
+
         body = self.parse_class_body()
 
         return tree.ClassDeclaration(name=name,
                                      type_parameters=type_params,
                                      extends=extends,
                                      implements=implements,
+                                     permits=permits,
                                      body=body)
 
     @parse_debug
@@ -422,6 +475,7 @@ class Parser(object):
         name = None
         type_parameters = None
         extends = None
+        permits = None
         body = None
 
         self.accept('interface')
@@ -433,11 +487,16 @@ class Parser(object):
         if self.try_accept('extends'):
             extends = self.parse_type_list()
 
+        # Java 17+ sealed interface permits clause
+        if self.try_accept('permits'):
+            permits = self.parse_type_list()
+
         body = self.parse_interface_body()
 
         return tree.InterfaceDeclaration(name=name,
                                          type_parameters=type_parameters,
                                          extends=extends,
+                                         permits=permits,
                                          body=body)
 
     @parse_debug
@@ -1601,6 +1660,26 @@ class Parser(object):
 
     @parse_debug
     def parse_resource(self):
+        # Java 9+ supports effectively final variables as resources:
+        #   try (existingVar) { ... }
+        # Detect: identifier followed by ')' or ';' (no type declaration)
+        if not self.would_accept('final') and not self.is_annotation():
+            saved_pos = self.tokens.marker
+            try:
+                name = self.parse_qualified_identifier()
+                if self.would_accept(')') or self.would_accept(';'):
+                    return tree.TryResource(
+                        modifiers=set(),
+                        annotations=[],
+                        type=None,
+                        name=name,
+                        value=None)
+            except (JavaSyntaxError, StopIteration):
+                pass
+            # Not an identifier-only resource, reset position
+            self.tokens.marker = saved_pos
+
+        # Original: Type name = expression
         modifiers, annotations = self.parse_variable_modifiers()
         reference_type = self.parse_reference_type()
         reference_type.dimensions = self.parse_array_dimension()
@@ -2450,3 +2529,137 @@ def parse(tokens, debug=False):
     parser = Parser(tokens)
     parser.set_debug(debug)
     return parser.parse()
+
+# ------------------------------------------------------------------------------
+# Java 9+ Module declaration parsing (added to Parser class via monkey-patch
+# to keep diff clean; alternatively these could be methods on Parser)
+#
+# We add them directly to the class:
+
+def _parse_module_declaration(self, annotations, is_open=False):
+    """Parse a Java 9+ module declaration."""
+    self.accept('module')
+    name = self.parse_qualified_identifier()
+    self.accept('{')
+
+    directives = []
+    while not self.would_accept('}'):
+        directive = self._parse_module_directive()
+        if directive:
+            directives.append(directive)
+
+    self.accept('}')
+
+    return tree.ModuleDeclaration(
+        annotations=annotations,
+        name=name,
+        directives=directives,
+        open=is_open)
+
+def _parse_module_directive(self):
+    """Parse a single module directive."""
+    if self.would_accept('requires'):
+        return self._parse_requires_directive()
+    elif self.would_accept('exports'):
+        return self._parse_exports_directive()
+    elif self.would_accept('opens'):
+        return self._parse_opens_directive()
+    elif self.would_accept('uses'):
+        return self._parse_uses_directive()
+    elif self.would_accept('provides'):
+        return self._parse_provides_directive()
+    else:
+        self.illegal("Expected module directive")
+
+def _parse_requires_directive(self):
+    self.accept('requires')
+    modifiers = set()
+    if self.try_accept('transitive'):
+        modifiers.add('transitive')
+    if self.try_accept('static'):
+        modifiers.add('static')
+    module_name = self.parse_qualified_identifier()
+    self.accept(';')
+    return tree.RequiresDirective(modifiers=modifiers, module_name=module_name)
+
+def _parse_exports_directive(self):
+    self.accept('exports')
+    package_name = self.parse_qualified_identifier()
+    module_names = None
+    if self.try_accept('to'):
+        module_names = self._parse_qualified_identifier_list()
+    self.accept(';')
+    return tree.ExportsDirective(package_name=package_name, module_names=module_names)
+
+def _parse_opens_directive(self):
+    self.accept('opens')
+    package_name = self.parse_qualified_identifier()
+    module_names = None
+    if self.try_accept('to'):
+        module_names = self._parse_qualified_identifier_list()
+    self.accept(';')
+    return tree.OpensDirective(package_name=package_name, module_names=module_names)
+
+def _parse_uses_directive(self):
+    self.accept('uses')
+    service_name = self.parse_qualified_identifier()
+    self.accept(';')
+    return tree.UsesDirective(service_name=service_name)
+
+def _parse_provides_directive(self):
+    self.accept('provides')
+    service_name = self.parse_qualified_identifier()
+    self.accept('with')
+    implementations = self._parse_qualified_identifier_list()
+    self.accept(';')
+    return tree.ProvidesDirective(service_name=service_name, implementations=implementations)
+
+def _parse_qualified_identifier_list(self):
+    """Parse a comma-separated list of qualified identifiers."""
+    identifiers = [self.parse_qualified_identifier()]
+    while self.try_accept(','):
+        identifiers.append(self.parse_qualified_identifier())
+    return identifiers
+
+# Monkey-patch onto Parser
+Parser._parse_module_declaration = _parse_module_declaration
+Parser._parse_module_directive = _parse_module_directive
+Parser._parse_requires_directive = _parse_requires_directive
+Parser._parse_exports_directive = _parse_exports_directive
+Parser._parse_opens_directive = _parse_opens_directive
+Parser._parse_uses_directive = _parse_uses_directive
+Parser._parse_provides_directive = _parse_provides_directive
+Parser._parse_qualified_identifier_list = _parse_qualified_identifier_list
+
+# ------------------------------------------------------------------------------
+# Java 16+ Record declaration
+
+@parse_debug
+def _parse_record_declaration(self):
+    """Parse a Java 16+ record declaration.
+    record Name(Type param, ...)[implements InterfaceList] { body }
+    """
+    self.accept('record')
+    name = self.parse_identifier()
+
+    type_params = None
+    if self.would_accept('<'):
+        type_params = self.parse_type_parameters()
+
+    # parse_formal_parameters handles '(' and ')'
+    parameters = self.parse_formal_parameters()
+
+    implements = None
+    if self.try_accept('implements'):
+        implements = self.parse_type_list()
+
+    body = self.parse_class_body()
+
+    return tree.RecordDeclaration(
+        type_parameters=type_params,
+        parameters=parameters,
+        implements=implements,
+        name=name,
+        body=body)
+
+Parser.parse_record_declaration = _parse_record_declaration

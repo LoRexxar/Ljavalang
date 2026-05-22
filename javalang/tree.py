@@ -4,10 +4,38 @@ from .ast import Node
 # ------------------------------------------------------------------------------
 
 class CompilationUnit(Node):
-    attrs = ("package", "imports", "types")
+    attrs = ("package", "imports", "types", "module")
 
 class Import(Node):
     attrs = ("path", "static", "wildcard")
+
+# ------------------------------------------------------------------------------
+# Java 9+ Module declarations
+
+class ModuleDirective(Node):
+    attrs = ()
+
+class RequiresDirective(ModuleDirective):
+    attrs = ("modifiers", "module_name")
+
+class ExportsDirective(ModuleDirective):
+    attrs = ("package_name", "module_names")
+
+class OpensDirective(ModuleDirective):
+    attrs = ("package_name", "module_names")
+
+class UsesDirective(ModuleDirective):
+    attrs = ("service_name",)
+
+class ProvidesDirective(ModuleDirective):
+    attrs = ("service_name", "implementations")
+
+class ModuleDeclaration(Node):
+    attrs = ("annotations", "name", "directives", "open")
+
+# ------------------------------------------------------------------------------
+# Java 16+ Record, 14+ Switch expression, 14+ Pattern matching
+# (Definitions moved after parent classes TypeDeclaration, Expression, Statement)
 
 class Documented(Node):
     attrs = ("documentation",)
@@ -34,7 +62,7 @@ class PackageDeclaration(Declaration, Documented):
     attrs = ("name",)
 
 class ClassDeclaration(TypeDeclaration):
-    attrs = ("type_parameters", "extends", "implements")
+    attrs = ("type_parameters", "extends", "implements", "permits")
 
 class EnumDeclaration(TypeDeclaration):
     attrs = ("implements",)
@@ -48,10 +76,16 @@ class EnumDeclaration(TypeDeclaration):
         return [decl for decl in self.body.declarations if isinstance(decl, MethodDeclaration)]
 
 class InterfaceDeclaration(TypeDeclaration):
-    attrs = ("type_parameters", "extends",)
+    attrs = ("type_parameters", "extends", "permits")
 
 class AnnotationDeclaration(TypeDeclaration):
     attrs = ()
+
+# ------------------------------------------------------------------------------
+# Java 16+ Record
+
+class RecordDeclaration(TypeDeclaration):
+    attrs = ("type_parameters", "parameters", "implements")
 
 # ------------------------------------------------------------------------------
 
@@ -168,6 +202,18 @@ class StatementExpression(Statement):
     attrs = ("expression",)
 
 # ------------------------------------------------------------------------------
+# Java 14+ Yield statement
+
+class YieldStatement(Statement):
+    attrs = ("expression",)
+
+# ------------------------------------------------------------------------------
+# Java 14+ Pattern matching instanceof
+
+class TypeTestPattern(Node):
+    attrs = ("type", "name")
+
+# ------------------------------------------------------------------------------
 
 class TryResource(Declaration):
     attrs = ("type", "name", "value")
@@ -211,6 +257,12 @@ class MethodReference(Expression):
 
 class LambdaExpression(Expression):
     attrs = ('parameters', 'body')
+
+# ------------------------------------------------------------------------------
+# Java 14+ Switch expression
+
+class SwitchExpression(Expression):
+    attrs = ("expression", "cases")
 
 # ------------------------------------------------------------------------------
 
