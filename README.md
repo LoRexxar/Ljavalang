@@ -21,6 +21,10 @@
 | **Java 21** pattern matching switch | ❌ | ✅ |
 | **Java 21** record pattern (解构) | ❌ | ✅ |
 | **Java 22** unnamed variable `_` | ❌ | ✅ |
+| **上游 issue 修复** | 部分未修复 | ✅ 全部 151 issue 已分析，32 bug 已验证 |
+| **Token 位置范围** | ❌ | ✅ `Position.range` |
+| **Visitor 模式** | ❌ | ✅ `javalang.visitor.JavaVisitor` |
+| **Receiver parameter** | ❌ | ✅ Java 8 `Type.this` 参数 |
 
 ## 安装
 
@@ -101,28 +105,52 @@ RecordDeclaration
 >>> # Ljavalang 正确解析为嵌套的 MethodInvocation 限定符链
 ```
 
-## 遍历语法树
+### Visitor 模式遍历
 
 ```python
-# 迭代所有节点
-for path, node in tree:
-    print(path, node)
+from javalang.visitor import JavaVisitor
 
-# 按类型过滤
-for path, node in tree.filter(javalang.tree.MethodInvocation):
-    print(f'方法调用: {node.member}')
+class MethodCollector(JavaVisitor):
+    def __init__(self):
+        self.methods = []
+
+    def visit_MethodDeclaration(self, node):
+        self.methods.append(node.name)
+        self.generic_visit(node)
+
+collector = MethodCollector()
+collector.visit(tree)
+print(collector.methods)  # ['foo', 'bar', ...]
+```
+
+### Token 位置范围
+
+```python
+from javalang.tokenizer import tokenize
+
+code = 'int x = 42;'
+for token in tokenize(code):
+    r = token.position.range
+    print(f'{token.value} -> code[{r.start}:{r.stop}] = {code[r]!r}')
+# int -> code[0:3] = 'int'
+# x -> code[4:5] = 'x'
+# = -> code[6:7] = '='
+# 42 -> code[8:10] = '42'
 ```
 
 ## 测试
 
 ```bash
-# 运行全部测试（73 个用例）
+# 运行全部测试（112 个用例）
 python -m pytest javalang/test/ -v \
   --ignore=javalang/test/test_java_8_syntax.py \
   --ignore=javalang/test/test_package_declaration.py
 
 # 仅运行特定版本的测试
 python -m pytest javalang/test/test_java_21_syntax.py -v
+
+# 仅运行上游 issue 回归测试
+python -m pytest javalang/test/test_upstream_issues.py javalang/test/test_upstream_features.py -v
 ```
 
 测试覆盖矩阵：Python 3.9 / 3.10 / 3.11 / 3.12，通过 GitHub Actions 自动运行。
@@ -138,6 +166,7 @@ python -m pytest javalang/test/test_java_21_syntax.py -v
 - 类型注解
 - 接口 default/static 方法
 - 通用 try-with-resources
+- Receiver parameter（`Inner.this` 参数）
 
 ### Java 9
 - `try`-with-resources effectively final 变量
@@ -180,8 +209,13 @@ python -m pytest javalang/test/test_java_21_syntax.py -v
 - Unnamed variable `_`
 - Unnamed lambda 参数
 
-### Bug 修复
-- **链式调用**：`a.b().c()` 不再被错误地放入 `selectors`，而是正确嵌套为 `MemberSelect(Invocation(MemberSelect(a, b)), c)` 的限定符链结构
+### 上游 Bug 修复（32 项）
+- **链式调用**：`a.b().c()` 不再被错误地放入 `selectors`，而是正确嵌套为限定符链
+- **DecimalInteger 继承**：继承 `Integer` 而非跳级 `Literal`
+- **Character token**：char 字面量 `'a'` 生成 `Character` 类型而非 `String`
+- **泛型内注解**：`List<@NotNull String>` 正确解析
+- **void 返回类型**：`return_type` 为 `'void'` 而非 `None`
+- **prefix/postfix 保留**：括号内一元运算符不再丢失
 
 </details>
 
@@ -192,16 +226,21 @@ javalang/
 ├── parse.py          # 入口：parse() / parse_expression() 等
 ├── parser.py         # 递归下降解析器（~2800 行）
 ├── tokenizer.py      # 词法分析器（~700 行）
-├── tree.py           # AST 节点定义（~230 行）
-├── test/             # 测试用例
+├── tree.py           # AST 节点定义（~340 行）
+├── visitor.py        # Visitor 模式遍历
+├── test/             # 测试用例（112 个）
 │   ├── test_java_9_syntax.py
 │   ├── test_java_10_11_syntax.py
 │   ├── test_java_14_15_syntax.py
 │   ├── test_java_16_17_syntax.py
-│   └── test_java_21_syntax.py
+│   ├── test_java_21_syntax.py
+│   ├── test_upstream_issues.py     # 上游 bug 回归测试
+│   └── test_upstream_features.py   # 上游 feature 测试
 └── docs/
-    ├── architecture.md       # 架构文档
-    └── java-version-roadmap.md  # 版本支持路线图
+    ├── architecture.md          # 架构文档
+    ├── java-version-roadmap.md  # 版本支持路线图
+    ├── upstream-issues.md       # 151 个上游 issue 分类
+    └── issue-fix-progress.md    # 修复进度追踪
 ```
 
 ## 致谢
