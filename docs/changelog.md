@@ -78,6 +78,32 @@ All notable changes to Ljavalang are documented in this file.
 **后续评估（1 项）**
 - `#97` — 大测试集变更（巨型重构 PR，需独立规划）
 
+### 上游 PR 合并（来自 c2nes/javalang/pulls）
+
+全面分析上游 43 个 PR，合并有价值的改动：
+
+**已合并（3 项）**
+- `PR #127` — tokenizer `read_integer_or_float` 中 `c_next=None` 防御性修复
+- `PR #120` — `end_position` 属性：TryStatement、CatchClause、MethodDeclaration
+- `PR #131` — `end_position` 属性：ClassDeclaration、ConstructorDeclaration、InterfaceDeclaration
+
+**已确认 Ljavalang 已覆盖（5 项）**
+- `PR #114` — prefix/postfix operators 保留（已独立实现）
+- `PR #117` — DecimalInteger 继承修复（已独立实现）
+- `PR #100` — Position.range（已独立实现）
+- `PR #133` — Visitor 类（已独立实现）
+- `PR #137` — tokenizer return_index（已独立实现）
+
+**已确认无需合并（9 项）**
+- `PR #92` — 改变 identifier 返回类型为对象（破坏性太大）
+- `PR #94` — position 体系（已部分覆盖）
+- `PR #96` — unicode 处理（Ljavalang 已正常工作）
+- `PR #97` — 大测试集（566 行，需独立规划）
+- `PR #104` — selectors 保护（链式调用 bug 已根本解决）
+- `PR #25` — Position class（架构冲突）
+- `PR #51` — 错误忽略（拒绝）
+- `PR #74` — 测试风格（不需要）
+
 ### 测试与 CI
 
 - 新增 112 个测试用例，覆盖 Java 8-22 全版本语法、上游 issue 回归、feature 验证
