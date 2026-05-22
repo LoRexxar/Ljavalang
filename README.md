@@ -2,6 +2,8 @@
 
 > [javalang](https://github.com/c2nes/javalang) 的增强 fork，修复上游 AST 构造缺陷并支持 Java 9-22 新语法，为 [Kunlun-M](https://github.com/LoRexxar/Kunlun-M) 等静态分析工具提供准确的 Java 语法树。
 
+[![PyPI](https://img.shields.io/pypi/v/ljavalang?color=blue)](https://pypi.org/project/ljavalang/)
+[![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
 [![GitHub Actions](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml/badge.svg?branch=develop)](https://github.com/LoRexxar/Ljavalang/actions/workflows/tests.yml)
 
 ## 与上游的区别
@@ -21,7 +23,8 @@
 | **Java 21** pattern matching switch | ❌ | ✅ |
 | **Java 21** record pattern (解构) | ❌ | ✅ |
 | **Java 22** unnamed variable `_` | ❌ | ✅ |
-| **上游 issue 修复** | 部分未修复 | ✅ 全部 151 issue 已分析，32 bug 已验证 |
+| **上游 issue 修复** | 部分未修复 | ✅ 全部 151 issue 已分析，6 bug 已修复 |
+| **end_position** | ❌ | ✅ TryStatement/MethodDeclaration 等节点 |
 | **Token 位置范围** | ❌ | ✅ `Position.range` |
 | **Visitor 模式** | ❌ | ✅ `javalang.visitor.JavaVisitor` |
 | **Receiver parameter** | ❌ | ✅ Java 8 `Type.this` 参数 |
@@ -29,10 +32,12 @@
 ## 安装
 
 ```bash
-pip install git+https://github.com/LoRexxar/Ljavalang.git@develop
+pip install ljavalang
 ```
 
-或克隆后本地安装：
+> 包名为 `ljavalang`（小写），代码中仍然 `import javalang` 使用，与上游完全兼容。
+
+开发安装：
 
 ```bash
 git clone https://github.com/LoRexxar/Ljavalang.git
@@ -138,6 +143,17 @@ for token in tokenize(code):
 # 42 -> code[8:10] = '42'
 ```
 
+### AST 节点 end_position
+
+```python
+>>> code = 'class T { void m() { try { int x = 1; } catch (Exception e) {} } }'
+>>> tree = javalang.parse.parse(code)
+>>> tree.types[0].end_position
+Position(line=1, column=66, range=slice(65, 66, None))
+>>> tree.types[0].body[0].end_position  # MethodDeclaration
+Position(line=1, column=64, range=slice(63, 64, None))
+```
+
 ## 测试
 
 ```bash
@@ -209,37 +225,33 @@ python -m pytest javalang/test/test_upstream_issues.py javalang/test/test_upstre
 - Unnamed variable `_`
 - Unnamed lambda 参数
 
-### 上游 Bug 修复（32 项）
-- **链式调用**：`a.b().c()` 不再被错误地放入 `selectors`，而是正确嵌套为限定符链
-- **DecimalInteger 继承**：继承 `Integer` 而非跳级 `Literal`
-- **Character token**：char 字面量 `'a'` 生成 `Character` 类型而非 `String`
-- **泛型内注解**：`List<@NotNull String>` 正确解析
-- **void 返回类型**：`return_type` 为 `'void'` 而非 `None`
-- **prefix/postfix 保留**：括号内一元运算符不再丢失
-
 </details>
 
 ## 项目结构
 
 ```
-javalang/
-├── parse.py          # 入口：parse() / parse_expression() 等
-├── parser.py         # 递归下降解析器（~2800 行）
-├── tokenizer.py      # 词法分析器（~700 行）
-├── tree.py           # AST 节点定义（~340 行）
-├── visitor.py        # Visitor 模式遍历
-├── test/             # 测试用例（112 个）
-│   ├── test_java_9_syntax.py
-│   ├── test_java_10_11_syntax.py
-│   ├── test_java_14_15_syntax.py
-│   ├── test_java_16_17_syntax.py
-│   ├── test_java_21_syntax.py
-│   ├── test_upstream_issues.py     # 上游 bug 回归测试
-│   └── test_upstream_features.py   # 上游 feature 测试
+Ljavalang/
+├── pyproject.toml    # 打包配置（PEP 621）
+├── javalang/
+│   ├── parse.py      # 入口：parse() / parse_expression() 等
+│   ├── parser.py     # 递归下降解析器（~2800 行）
+│   ├── tokenizer.py  # 词法分析器（~700 行）
+│   ├── tree.py       # AST 节点定义（~340 行）
+│   ├── visitor.py    # Visitor 模式遍历
+│   └── test/         # 测试用例（112 个）
+│       ├── test_java_9_syntax.py
+│       ├── test_java_10_11_syntax.py
+│       ├── test_java_14_15_syntax.py
+│       ├── test_java_16_17_syntax.py
+│       ├── test_java_21_syntax.py
+│       ├── test_upstream_issues.py     # 上游 bug 回归测试
+│       └── test_upstream_features.py   # 上游 feature 测试
 └── docs/
-    ├── architecture.md          # 架构文档
-    ├── java-version-roadmap.md  # 版本支持路线图
-    ├── upstream-issues.md       # 151 个上游 issue 分类
+    ├── changelog.md              # 版本变更记录
+    ├── architecture.md           # 架构文档
+    ├── java-version-roadmap.md   # 版本支持路线图
+    ├── upstream-issues.md        # 151 个上游 issue 分类
+    ├── upstream-prs.md           # 43 个上游 PR 分析
     └── issue-fix-progress.md    # 修复进度追踪
 ```
 
