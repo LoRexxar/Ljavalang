@@ -249,6 +249,26 @@ class JavaTokenizer(object):
 
         self.j = j + 1
 
+    def read_text_block(self):
+        """Read a Java 15+ text block (triple-quoted string).
+        Syntax: \"\"\" followed by optional whitespace + newline, content, closing \"\"\"
+        Escapes are processed similarly to regular strings, but we only need
+        to track the closing triple-quote for tokenization purposes.
+        """
+        j = self.i + 3  # skip opening \"\"\"
+        length = self.length
+
+        while j < length:
+            if self.data[j] == '\\':
+                j += 2  # skip escape sequence
+                continue
+            if self.data[j] == '"' and self.data[j:j+3] == '"""':
+                self.j = j + 3
+                return
+            j += 1
+
+        self.error('Unterminated text block')
+
     def try_operator(self):
         for l in range(min(self.length - self.i, Operator.MAX_LEN), 0, -1):
             if self.data[self.i:self.i + l] in self.operators[l - 1]:
@@ -542,8 +562,13 @@ class JavaTokenizer(object):
                 token_type = Separator
 
             elif c in ("'", '"'):
-                token_type = String
-                self.read_string()
+                # Java 15+ text block: """
+                if c == '"' and c_next == '"' and self.data[self.i + 2:self.i + 3] == '"':
+                    token_type = String
+                    self.read_text_block()
+                else:
+                    token_type = String
+                    self.read_string()
 
             elif c in '0123456789':
                 token_type = self.read_integer_or_float(c, c_next)
