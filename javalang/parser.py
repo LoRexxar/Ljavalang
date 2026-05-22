@@ -450,7 +450,8 @@ class Parser(object):
                                      extends=extends,
                                      implements=implements,
                                      permits=permits,
-                                     body=body)
+                                     body=body,
+                                     end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_enum_declaration(self):
@@ -497,7 +498,8 @@ class Parser(object):
                                          type_parameters=type_parameters,
                                          extends=extends,
                                          permits=permits,
-                                         body=body)
+                                         body=body,
+                                         end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_annotation_type_declaration(self):
@@ -968,7 +970,8 @@ class Parser(object):
         return tree.MethodDeclaration(parameters=formal_parameters,
                                      throws=throws,
                                      body=body,
-                                     return_type=tree.Type(dimensions=additional_dimensions))
+                                     return_type=tree.Type(dimensions=additional_dimensions),
+                                     end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_void_method_declarator_rest(self):
@@ -987,7 +990,8 @@ class Parser(object):
         return tree.MethodDeclaration(parameters=formal_parameters,
                                       throws=throws,
                                       body=body,
-                                      return_type='void')
+                                      return_type='void',
+                                      end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_constructor_declarator_rest(self):
@@ -1002,7 +1006,8 @@ class Parser(object):
 
         return tree.ConstructorDeclaration(parameters=formal_parameters,
                                            throws=throws,
-                                           body=body)
+                                           body=body,
+                                           end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_generic_method_or_constructor_declaration(self):
@@ -1165,7 +1170,8 @@ class Parser(object):
         return tree.MethodDeclaration(parameters=parameters,
                                       throws=throws,
                                       body=body,
-                                      return_type=tree.Type(dimensions=array_dimension))
+                                      return_type=tree.Type(dimensions=array_dimension),
+                                      end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_void_interface_method_declarator_rest(self):
@@ -1184,7 +1190,8 @@ class Parser(object):
         return tree.MethodDeclaration(parameters=parameters,
                                       throws=throws,
                                       body=body,
-                                      return_type='void')
+                                      return_type='void',
+                                      end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_interface_generic_method_declarator(self):
@@ -1643,7 +1650,8 @@ class Parser(object):
             statement = tree.TryStatement(resources=resource_specification,
                                      block=block,
                                      catches=catches,
-                                     finally_block=finally_block)
+                                     finally_block=finally_block,
+                                     end_position=self.tokens.last().position)
             statement._position = token.position
             return statement
 
@@ -1689,7 +1697,8 @@ class Parser(object):
         self.accept(')')
         block = self.parse_block()
 
-        return tree.CatchClause(parameter=catch_parameter, block=block)
+        return tree.CatchClause(parameter=catch_parameter, block=block,
+                                end_position=self.tokens.last().position)
 
     @parse_debug
     def parse_resource_specification(self):
