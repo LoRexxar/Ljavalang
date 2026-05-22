@@ -8,7 +8,7 @@ import six
 class LexerError(Exception):
     pass
 
-Position = namedtuple('Position', ['line', 'column'])
+Position = namedtuple('Position', ['line', 'column', 'range'])
 
 class JavaToken(object):
     def __init__(self, value, position=None, javadoc=None):
@@ -517,7 +517,13 @@ class JavaTokenizer(object):
         self.data = ''.join(new_data)
         self.length = len(self.data)
 
-    def tokenize(self):
+    def tokenize(self, return_index=False):
+        """Tokenize the input source code.
+
+        Args:
+            return_index: If True, yield (token, (start, end)) tuples
+                          with character offsets in addition to tokens.
+        """
         self.reset()
 
         # Convert unicode escapes
@@ -586,9 +592,12 @@ class JavaTokenizer(object):
                 self.i = self.i + 1
                 continue
 
-            position = Position(self.current_line, self.i - self.start_of_line)
+            position = Position(self.current_line, self.i - self.start_of_line, slice(self.i, self.j))
             token = token_type(self.data[self.i:self.j], position, self.javadoc)
-            yield token
+            if return_index:
+                yield token, (self.i, self.j)
+            else:
+                yield token
 
             if self.javadoc:
                 self.javadoc = None
@@ -613,9 +622,9 @@ class JavaTokenizer(object):
         if not self.ignore_errors:
             raise error
 
-def tokenize(code, ignore_errors=False):
+def tokenize(code, ignore_errors=False, return_index=False):
     tokenizer = JavaTokenizer(code, ignore_errors)
-    return tokenizer.tokenize()
+    return tokenizer.tokenize(return_index=return_index)
 
 def reformat_tokens(tokens):
     indent = 0

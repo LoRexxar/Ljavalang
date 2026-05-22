@@ -151,6 +151,10 @@ class VariableDeclarator(Node):
 class FormalParameter(Declaration):
     attrs = ("type", "name", "varargs")
 
+# Java 8 receiver parameter (e.g., Inner.this in method params)
+class ReceiverParameter(Declaration):
+    attrs = ("type", "name")
+
 class InferredFormalParameter(Node):
     attrs = ('name',)
 

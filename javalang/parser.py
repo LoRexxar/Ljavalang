@@ -1219,6 +1219,27 @@ class Parser(object):
             modifiers, annotations = self.parse_variable_modifiers()
             
             token = self.tokens.look()
+            # #88: Java 8 receiver parameter: Type.this
+            # Detect pattern: Identifier '.' 'this' before parse_type consumes it
+            if (self.would_accept(Identifier) and 
+                self.tokens.look(1).value == '.' and 
+                self.tokens.look(2).value == 'this'):
+                recv_type_name = self.parse_identifier()
+                self.accept('.', 'this')
+                recv_name = recv_type_name + '.this'
+                parameter = tree.ReceiverParameter(modifiers=modifiers,
+                                                   annotations=annotations,
+                                                   type=tree.ReferenceType(name=recv_type_name, arguments=[], dimensions=[]),
+                                                   name=recv_name)
+                parameter._position = token.position
+                formal_parameters.append(parameter)
+
+                if self.try_accept(')'):
+                    break
+                self.accept(',')
+
+                continue
+
             parameter_type = self.parse_type()
             varargs = False
 
@@ -2009,10 +2030,19 @@ class Parser(object):
                 pass
 
         primary = self.parse_primary()
-        primary.prefix_operators = prefix_operators
+        # #114: 保留子表达式中已有的 prefix_operators（如括号内的 !a）
+        if hasattr(primary, 'prefix_operators') and primary.prefix_operators:
+            primary.prefix_operators = prefix_operators + list(primary.prefix_operators)
+        else:
+            primary.prefix_operators = prefix_operators
         if getattr(primary, "selectors", None) is None:
             primary.selectors = list()
-        primary.postfix_operators = list()
+        if hasattr(primary, 'postfix_operators') and primary.postfix_operators:
+            # #114: 保留子表达式中已有的 postfix_operators
+            existing = list(primary.postfix_operators)
+            primary.postfix_operators = existing
+        else:
+            primary.postfix_operators = list()
 
         token = self.tokens.look()
         while token.value in '[.':
