@@ -1556,6 +1556,15 @@ class Parser(object):
             statement._position = token.position
             return statement
 
+        elif self.try_accept('yield'):
+            # Java 14+ yield statement (switch expression)
+            value = self.parse_expression()
+            self.accept(';')
+
+            statement = tree.YieldStatement(expression=value)
+            statement._position = token.position
+            return statement
+
         elif self.try_accept('throw'):
             value = self.parse_expression()
             self.accept(';')
@@ -1722,29 +1731,63 @@ class Parser(object):
     def parse_switch_block_statement_group(self):
         labels = list()
         statements = list()
+        is_arrow = False
 
         while True:
             case_type = self.tokens.next().value
             case_value = None
 
             if case_type == 'case':
-                if self.would_accept(Identifier, ':'):
+                # Use parse_expression_2 to avoid consuming -> as lambda
+                if self.would_accept(Identifier) and (
+                        self.tokens.look(1).value == ':' or
+                        self.tokens.look(1).value == ','):
                     case_value = self.parse_identifier()
                 else:
-                    case_value = self.parse_expression()
+                    case_value = self.parse_expression_2()
 
                 labels.append(case_value)
+
+                # Java 14+ multiple case labels: case 1, 2, 3 ->
+                while self.try_accept(','):
+                    if self.would_accept(Identifier):
+                        labels.append(self.parse_identifier())
+                    else:
+                        labels.append(self.parse_expression_2())
             elif not case_type == 'default':
                 self.illegal("Expected switch case")
 
-            self.accept(':')
+            # Java 14+ arrow syntax: case X -> expr/throw/block
+            if self.would_accept('->'):
+                is_arrow = True
+                self.accept('->')
 
-            if self.tokens.look().value not in ('case', 'default'):
+                if self.would_accept('{'):
+                    # block: case X -> { ... }
+                    block = self.parse_block()
+                    statements.append(block)
+                elif self.try_accept('throw'):
+                    value = self.parse_expression()
+                    self.accept(';')
+                    statements.append(tree.ThrowStatement(expression=value))
+                else:
+                    # single expression: case X -> expr
+                    expr = self.parse_expression()
+                    self.accept(';')
+                    statements.append(tree.StatementExpression(expression=expr))
+
+                break  # arrow case only has one body element, no fall-through
+            else:
+                # classic colon syntax
+                self.accept(':')
+
+            if self.tokens.look().value not in ('case', 'default') or is_arrow:
                 break
 
-        while self.tokens.look().value not in ('case', 'default', '}'):
-            statement = self.parse_block_statement()
-            statements.append(statement)
+        if not is_arrow:
+            while self.tokens.look().value not in ('case', 'default', '}'):
+                statement = self.parse_block_statement()
+                statements.append(statement)
 
         return tree.SwitchStatementCase(case=labels, statements=statements)
 
