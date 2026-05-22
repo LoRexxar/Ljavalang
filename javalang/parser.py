@@ -1961,7 +1961,13 @@ class Parser(object):
         while token.value in Operator.INFIX or token.value == 'instanceof':
             if self.try_accept('instanceof'):
                 comparison_type = self.parse_type()
-                parts.extend(('instanceof', comparison_type))
+                # Java 14+ pattern matching: instanceof Type name
+                if self.would_accept(Identifier):
+                    pattern_name = self.parse_identifier()
+                    pattern = tree.TypeTestPattern(type=comparison_type, name=pattern_name)
+                    parts.extend(('instanceof', pattern))
+                else:
+                    parts.extend(('instanceof', comparison_type))
             else:
                 operator = self.parse_infix_operator()
                 expression = self.parse_expression_3()
