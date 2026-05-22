@@ -1738,22 +1738,14 @@ class Parser(object):
             case_value = None
 
             if case_type == 'case':
-                # Use parse_expression_2 to avoid consuming -> as lambda
-                if self.would_accept(Identifier) and (
-                        self.tokens.look(1).value == ':' or
-                        self.tokens.look(1).value == ','):
-                    case_value = self.parse_identifier()
-                else:
-                    case_value = self.parse_expression_2()
-
+                # Java 21+ pattern matching: case Type name
+                # Detect: Type followed by Identifier (and not by . or ()
+                case_value = self._parse_case_value()
                 labels.append(case_value)
 
                 # Java 14+ multiple case labels: case 1, 2, 3 ->
                 while self.try_accept(','):
-                    if self.would_accept(Identifier):
-                        labels.append(self.parse_identifier())
-                    else:
-                        labels.append(self.parse_expression_2())
+                    labels.append(self._parse_case_value())
             elif not case_type == 'default':
                 self.illegal("Expected switch case")
 
@@ -2723,3 +2715,38 @@ def _parse_record_declaration(self):
         body=body)
 
 Parser.parse_record_declaration = _parse_record_declaration
+
+# ------------------------------------------------------------------------------
+# Java 21+ Pattern matching switch case value parser
+
+def _parse_case_value(self):
+    """Parse a single case value, supporting:
+    - Regular constants: 1, "hello", MyEnum.VALUE
+    - Enum constants by identifier: MY_CONST
+    - Java 21 pattern matching: Type name
+    - null literal
+    """
+    # Handle null
+    if self.try_accept('null'):
+        return 'null'
+
+    # Try pattern: Type name (e.g., String s, Integer i)
+    # Heuristic: current token is Identifier (potential type name) and
+    # next token is also an Identifier (pattern variable), not '.' or '<'
+    tok0 = self.tokens.look()
+    tok1 = self.tokens.look(1)
+    if (isinstance(tok0, (Identifier, BasicType))
+        and isinstance(tok1, Identifier)
+        and self.tokens.look(2).value in ('->', ',', ':')):
+        pattern_type = self.parse_type()
+        pattern_name = self.parse_identifier()
+        return tree.TypeTestPattern(type=pattern_type, name=pattern_name)
+
+    # Regular case value - simple identifier for enum constants
+    if self.would_accept(Identifier) and self.tokens.look(1).value not in ('.', '(', '<'):
+        return self.parse_identifier()
+
+    # Expression value (use parse_expression_2 to avoid -> as lambda)
+    return self.parse_expression_2()
+
+Parser._parse_case_value = _parse_case_value
