@@ -1885,6 +1885,37 @@ class Parser(object):
             primary.postfix_operators.append(self.tokens.next().value)
             token = self.tokens.look()
 
+        # 将 selectors 列表转化为嵌套的 qualifier 结构
+        # 原始：primary.selectors = [MI("c", args), MI("d", args)]
+        # 转换后：返回 MI("d", qualifier=MI("c", qualifier=primary))
+        # selectors 保留为空列表以保持向后兼容
+        if primary.selectors:
+            result = primary
+            saved_selectors = list(primary.selectors)
+            primary.selectors = []
+
+            for sel in saved_selectors:
+                if isinstance(sel, tree.MethodInvocation):
+                    # 将当前结果作为新节点的 qualifier
+                    sel.qualifier = result
+                    # 清空新节点的 selectors（它们会在后续循环中处理）
+                    sel.selectors = []
+                    result = sel
+                elif isinstance(sel, tree.MemberReference):
+                    # MemberReference 也需要嵌套：obj.field.subField
+                    sel.qualifier = result
+                    result = sel
+                else:
+                    # ArraySelector 等其他类型，保持原样添加到 selectors
+                    result.selectors = result.selectors if hasattr(result, 'selectors') and result.selectors else []
+                    result.selectors.append(sel)
+
+            # 保留原始 primary 的 prefix/postfix operators
+            result.prefix_operators = prefix_operators
+            result.postfix_operators = primary.postfix_operators
+
+            return result
+
         return primary
 
     @parse_debug
