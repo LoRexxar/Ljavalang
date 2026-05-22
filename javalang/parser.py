@@ -699,6 +699,17 @@ class Parser(object):
             if self.would_accept(Modifier):
                 modifiers.add(self.accept(Modifier))
 
+            # Java 17+ non-sealed: Identifier("non") + Operator("-") + Modifier("sealed")
+            elif (isinstance(token, Identifier) and token.value == 'non'
+                  and isinstance(self.tokens.look(1), Operator)
+                  and self.tokens.look(1).value == '-'
+                  and isinstance(self.tokens.look(2), Modifier)
+                  and self.tokens.look(2).value == 'sealed'):
+                self.tokens.next()  # consume 'non'
+                self.tokens.next()  # consume '-'
+                self.tokens.next()  # consume 'sealed'
+                modifiers.add('non-sealed')
+
             elif self.is_annotation():
                 annotation = self.parse_annotation()
                 annotation._position = token.position
