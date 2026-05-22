@@ -575,6 +575,11 @@ class Parser(object):
         pattern_type = None
         base_type = None
 
+        # Java 8+ type annotations (JSR 308): @Annotation Type
+        annotations = []
+        while self.would_accept('@'):
+            annotations.append(self.parse_annotation())
+
         if self.try_accept('?'):
             if self.tokens.look().value in ('extends', 'super'):
                 pattern_type = self.tokens.next().value
@@ -981,7 +986,8 @@ class Parser(object):
 
         return tree.MethodDeclaration(parameters=formal_parameters,
                                       throws=throws,
-                                      body=body)
+                                      body=body,
+                                      return_type='void')
 
     @parse_debug
     def parse_constructor_declarator_rest(self):
@@ -1177,7 +1183,8 @@ class Parser(object):
 
         return tree.MethodDeclaration(parameters=parameters,
                                       throws=throws,
-                                      body=body)
+                                      body=body,
+                                      return_type='void')
 
     @parse_debug
     def parse_interface_generic_method_declarator(self):

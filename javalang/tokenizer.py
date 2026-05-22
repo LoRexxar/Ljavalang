@@ -71,7 +71,7 @@ class Literal(JavaToken):
 class Integer(Literal):
     pass
 
-class DecimalInteger(Literal):
+class DecimalInteger(Integer):
     pass
 
 class OctalInteger(Integer):
@@ -562,8 +562,10 @@ class JavaTokenizer(object):
                 token_type = Separator
 
             elif c in ("'", '"'):
-                # Java 15+ text block: """
-                if c == '"' and c_next == '"' and self.data[self.i + 2:self.i + 3] == '"':
+                if c == "'":
+                    token_type = Character
+                    self.read_string()
+                elif c == '"' and c_next == '"' and self.data[self.i + 2:self.i + 3] == '"':
                     token_type = String
                     self.read_text_block()
                 else:
