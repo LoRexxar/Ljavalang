@@ -1,7 +1,9 @@
 # Ljavalang
 
 > 感谢AI时代吧，停止维护的项目可以以非常极低成本的方式继续维护。
-> [javalang](https://github.com/c2nes/javalang) 的增强版本，修复上游 AST 构造缺陷并支持 Java 9-22 新语法
+
+> Ljavalang是一个完全由python实现的java源代码parser，用于将java源代码转化为AST结构，用于后续静态分析。
+> Ljavalang是[javalang](https://github.com/c2nes/javalang) 的增强版本，修复上游 AST 构造缺陷并支持 Java 9-22 新语法，并修复了原项目中的所有已知bug。
 
 [![PyPI](https://img.shields.io/pypi/v/ljavalang?color=blue)](https://pypi.org/project/ljavalang/)
 [![Python](https://img.shields.io/pypi/pyversions/ljavalang)](https://pypi.org/project/ljavalang/)
