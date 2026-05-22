@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools==67.7.2", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ljavalang"
+version = "2.0.1"
+description = "Enhanced Java parser with Java 9-22 support, fork of javalang"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    { name = "LoRexxar", email = "lorexxar@gmail.com" },
+]
+maintainers = [
+    { name = "LoRexxar", email = "lorexxar@gmail.com" },
+]
+keywords = ["java", "parser", "ast", "static-analysis", "javalang"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Compilers",
+]
+
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/LoRexxar/Ljavalang"
+Repository = "https://github.com/LoRexxar/Ljavalang"
+Issues = "https://github.com/LoRexxar/Ljavalang/issues"
+
+[tool.setuptools.packages.find]
+include = ["javalang*"]
+
+[tool.setuptools.package-data]
+javalang = ["test/source/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["javalang/test"]
+addopts = "-v --tb=short"

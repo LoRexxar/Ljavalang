@@ -4,3 +4,6 @@ dist
 /build
 /env
 /.eggs
+dist/
+build/
+*.egg-info/
