@@ -883,6 +883,9 @@ class Parser(object):
         elif token.value == 'interface':
             member = self.parse_normal_interface_declaration()
 
+        elif token.value == 'record':
+            member = self.parse_record_declaration()
+
         elif self.is_annotation_declaration():
             member = self.parse_annotation_type_declaration()
 
@@ -2721,6 +2724,59 @@ def _parse_record_declaration(self):
 Parser.parse_record_declaration = _parse_record_declaration
 
 # ------------------------------------------------------------------------------
+# Java 21+ Record pattern (deconstruction)
+
+def _parse_record_pattern(self):
+    """Parse a record deconstruction pattern: Type(Type var, Type var, ...)
+    Also supports nested: Outer(Inner(int x, int y), int z)
+    And unnamed: Point(int, int) or Point(_, _)
+    """
+    pattern_type = self.parse_type()
+    self.accept('(')
+
+    patterns = []
+    if not self.would_accept(')'):
+        patterns.append(_parse_nested_pattern(self))
+        while self.try_accept(','):
+            patterns.append(_parse_nested_pattern(self))
+
+    self.accept(')')
+    return tree.RecordPattern(type=pattern_type, patterns=patterns)
+
+def _parse_nested_pattern(self):
+    """Parse a single pattern inside a record pattern.
+    Can be: Type var (TypeTestPattern), Type(...) (RecordPattern), or _
+    """
+    tok0 = self.tokens.look()
+
+    # Unnamed variable: _
+    if isinstance(tok0, Identifier) and tok0.value == '_':
+        self.tokens.next()
+        return tree.TypeTestPattern(type=None, name='_')
+
+    # Check for record pattern: Type(...)
+    tok1 = self.tokens.look(1)
+    if (isinstance(tok0, (Identifier, BasicType))
+        and tok1.value == '('):
+        return _parse_record_pattern(self)
+
+    # Type name pattern: Type var
+    if isinstance(tok0, (Identifier, BasicType)):
+        # Look ahead: if next is also Identifier, it's Type name
+        if isinstance(tok1, Identifier):
+            ptype = self.parse_type()
+            pname = self.parse_identifier()
+            return tree.TypeTestPattern(type=ptype, name=pname)
+        # Type-only (unnamed component): just Type
+        ptype = self.parse_type()
+        return tree.TypeTestPattern(type=ptype, name=None)
+
+    self.illegal("Expected pattern")
+
+Parser._parse_record_pattern = _parse_record_pattern
+Parser._parse_nested_pattern = _parse_nested_pattern
+
+# ------------------------------------------------------------------------------
 # Java 21+ Pattern matching switch case value parser
 
 def _parse_case_value(self):
@@ -2745,6 +2801,12 @@ def _parse_case_value(self):
         pattern_type = self.parse_type()
         pattern_name = self.parse_identifier()
         return tree.TypeTestPattern(type=pattern_type, name=pattern_name)
+
+    # Java 21+ Record pattern: Type(Type var, Type var, ...)
+    # Detect: Identifier followed by '(' (and not as method call in expression)
+    if (isinstance(tok0, (Identifier, BasicType))
+        and tok1.value == '('):
+        return _parse_record_pattern(self)
 
     # Regular case value - simple identifier for enum constants
     if self.would_accept(Identifier) and self.tokens.look(1).value not in ('.', '(', '<'):

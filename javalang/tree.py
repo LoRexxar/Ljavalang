@@ -213,6 +213,10 @@ class YieldStatement(Statement):
 class TypeTestPattern(Node):
     attrs = ("type", "name")
 
+# Java 21+ Record pattern (deconstruction pattern)
+class RecordPattern(Node):
+    attrs = ("type", "patterns")
+
 # ------------------------------------------------------------------------------
 
 class TryResource(Declaration):
