@@ -96,15 +96,15 @@ class BasicType(Type):
     attrs = ()
 
 class ReferenceType(Type):
-    attrs = ("arguments", "sub_type")
+    attrs = ("arguments", "sub_type", "annotations")
 
 class TypeArgument(Node):
-    attrs = ("type", "pattern_type")
+    attrs = ("type", "pattern_type", "annotations")
 
 # ------------------------------------------------------------------------------
 
 class TypeParameter(Node):
-    attrs = ("name", "extends")
+    attrs = ("name", "extends", "annotations")
 
 # ------------------------------------------------------------------------------
 
