@@ -515,8 +515,16 @@ class Parser(object):
 # ------------------------------------------------------------------------------
 # -- Types --
 
+    def _consume_type_annotations(self):
+        """Consume JSR308 type-use annotations (e.g., @NonNull before a type)."""
+        annotations = []
+        while self.would_accept('@'):
+            annotations.append(self.parse_annotation())
+        return annotations
+
     @parse_debug
     def parse_type(self):
+        annotations = self._consume_type_annotations()
         java_type = None
 
         if isinstance(self.tokens.look(), BasicType):
@@ -527,6 +535,17 @@ class Parser(object):
             self.illegal("Expected type")
 
         java_type.dimensions = self.parse_array_dimension()
+
+        # JSR308: array type-use annotation (e.g., String @NonNull [])
+        array_annotations = self._consume_type_annotations()
+        if array_annotations:
+            annotations = annotations + array_annotations
+            extra_dims = self.parse_array_dimension()
+            if extra_dims:
+                java_type.dimensions += [None] * len(extra_dims)
+
+        if annotations and hasattr(java_type, 'annotations'):
+            java_type.annotations = annotations
 
         return java_type
 
@@ -583,8 +602,10 @@ class Parser(object):
         if self.try_accept('?'):
             if self.tokens.look().value in ('extends', 'super'):
                 pattern_type = self.tokens.next().value
+                # JSR308: consume type-use annotations after extends/super
+                annotations.extend(self._consume_type_annotations())
             else:
-                return tree.TypeArgument(pattern_type='?')
+                return tree.TypeArgument(pattern_type='?', annotations=annotations)
 
         if self.would_accept(BasicType):
             base_type = self.parse_basic_type()
@@ -597,7 +618,8 @@ class Parser(object):
         base_type.dimensions += self.parse_array_dimension()
 
         return tree.TypeArgument(type=base_type,
-                                 pattern_type=pattern_type)
+                                 pattern_type=pattern_type,
+                                 annotations=annotations)
 
     @parse_debug
     def parse_nonwildcard_type_arguments(self):
@@ -661,6 +683,7 @@ class Parser(object):
 
     @parse_debug
     def parse_type_parameter(self):
+        annotations = self._consume_type_annotations()
         identifier = self.parse_identifier()
         extends = None
 
@@ -675,7 +698,8 @@ class Parser(object):
                     break
 
         return tree.TypeParameter(name=identifier,
-                                  extends=extends)
+                                  extends=extends,
+                                  annotations=annotations)
 
     @parse_debug
     def parse_array_dimension(self):
