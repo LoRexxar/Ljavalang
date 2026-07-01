@@ -310,22 +310,22 @@ class Parser(object):
                 is_module = True
         elif self.is_annotation():
             # Check for @Annotation module ... or @Annotation open module ...
-            with self.tokens:
-                try:
-                    self.parse_annotations()
-                    t = self.tokens.look()
-                    if isinstance(t, Keyword) and t.value == 'module':
+            self.tokens.push_marker()
+            try:
+                self.parse_annotations()
+                t = self.tokens.look()
+                if isinstance(t, Keyword) and t.value == 'module':
+                    is_module = True
+                elif isinstance(t, Identifier) and t.value == 'open':
+                    t1 = self.tokens.look(1)
+                    if isinstance(t1, Keyword) and t1.value == 'module':
                         is_module = True
-                    elif isinstance(t, Identifier) and t.value == 'open':
-                        t1 = self.tokens.look(1)
-                        if isinstance(t1, Keyword) and t1.value == 'module':
-                            is_module = True
-                except:
-                    pass
-            # Need to re-check after backtracking
+            except:
+                pass
             if is_module:
-                with self.tokens:
-                    pass  # discard marker
+                self.tokens.pop_marker(False)  # keep consumed tokens
+            else:
+                self.tokens.pop_marker(True)   # rollback: not a module declaration
 
         if is_module:
             module_annotations = list()
