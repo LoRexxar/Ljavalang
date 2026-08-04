@@ -309,23 +309,25 @@ class Parser(object):
             if isinstance(tok1, Keyword) and tok1.value == 'module':
                 is_module = True
         elif self.is_annotation():
-            # Check for @Annotation module ... or @Annotation open module ...
-            with self.tokens:
-                try:
-                    self.parse_annotations()
-                    t = self.tokens.look()
-                    if isinstance(t, Keyword) and t.value == 'module':
+            # Inspect annotations without consuming them. They may belong to
+            # either a module declaration or a top-level type declaration.
+            self.tokens.push_marker()
+            try:
+                self.parse_annotations()
+                token = self.tokens.look()
+
+                if isinstance(token, Keyword) and token.value == 'module':
+                    is_module = True
+                elif isinstance(token, Identifier) and token.value == 'open':
+                    following_token = self.tokens.look(1)
+                    if (isinstance(following_token, Keyword)
+                            and following_token.value == 'module'):
                         is_module = True
-                    elif isinstance(t, Identifier) and t.value == 'open':
-                        t1 = self.tokens.look(1)
-                        if isinstance(t1, Keyword) and t1.value == 'module':
-                            is_module = True
-                except:
-                    pass
-            # Need to re-check after backtracking
-            if is_module:
-                with self.tokens:
-                    pass  # discard marker
+            except (JavaSyntaxError, StopIteration):
+                pass
+            finally:
+                # Rewind so the real parser can consume the annotations.
+                self.tokens.pop_marker(True)
 
         if is_module:
             module_annotations = list()
