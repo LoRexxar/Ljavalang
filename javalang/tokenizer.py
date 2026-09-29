@@ -41,9 +41,16 @@ class Keyword(JavaToken):
                   'short', 'static', 'strictfp', 'super', 'switch',
                   'synchronized', 'this', 'throw', 'throws', 'transient', 'try',
                   'void', 'volatile', 'while',
-                  # Java 9+ module keywords
-                  'module', 'requires', 'exports', 'opens', 'to',
-                  'uses', 'provides', 'with', 'transitive',
+                  # Java 9+ module declaration. Only 'module' is reserved
+                  # here. The directives that may follow it - requires,
+                  # exports, opens, to, uses, provides, with, transitive -
+                  # are restricted keywords: inside a module declaration
+                  # they are directives, everywhere else they are ordinary
+                  # identifiers, and Java programs do use them as method and
+                  # variable names. The parser accepts them by value, so it
+                  # still reads a module declaration without them being
+                  # tokenised as keywords.
+                  'module',
                   # Java 14+ yield
                   'yield',
                   # Java 16+ record
