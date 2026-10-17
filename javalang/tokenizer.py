@@ -42,8 +42,15 @@ class Keyword(JavaToken):
                   'synchronized', 'this', 'throw', 'throws', 'transient', 'try',
                   'void', 'volatile', 'while',
                   # Java 9+ module keywords
-                  'module', 'requires', 'exports', 'opens', 'to',
+                  'module', 'requires', 'exports', 'opens',
                   'uses', 'provides', 'with', 'transitive',
+                  # Fix 36a: 'to' removed -- it is a contextual keyword
+                  # (JLS 3.8) only inside module directives; as a plain
+                  # identifier it is legal everywhere else (pattern
+                  # variable 'instanceof X to' in geotools 35.0
+                  # FilterToSqlHelper.java broke the whole-file parse,
+                  # hiding CVE-2026-76904).  accept('to') compares
+                  # token.value only, so module parsing is unaffected.
                   # Java 14+ yield
                   'yield',
                   # Java 16+ record
