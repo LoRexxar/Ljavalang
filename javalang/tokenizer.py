@@ -41,9 +41,22 @@ class Keyword(JavaToken):
                   'short', 'static', 'strictfp', 'super', 'switch',
                   'synchronized', 'this', 'throw', 'throws', 'transient', 'try',
                   'void', 'volatile', 'while',
-                  # Java 9+ module keywords
+                  # Java 9+ module keywords.  NOTE: the directive
+                  # contextual keywords below that are ALSO legal plain
+                  # identifiers (JLS 3.8) must stay OUT of this set --
+                  # keeping them in makes every method/variable named
+                  # after them unparseable.  'to' and 'with' were both
+                  # removed for this reason; see Fix 36a ('to',
+                  # instanceof-pattern variable, geotools 35.0,
+                  # CVE-2026-76904) and Fix 53 ('with',
+                  # AuthenticationContext.captureCurrent().with(..) in
+                  # WildFly EjbCorbaServant.java, CVE-2026-15564 --
+                  # the whole-file JavaSyntaxError hid the pre-auth
+                  # deserialization sink).  accept('with'/'to') in the
+                  # module-directive parsers compares token.value only,
+                  # so module-info parsing is unaffected.
                   'module', 'requires', 'exports', 'opens',
-                  'uses', 'provides', 'with', 'transitive',
+                  'uses', 'provides', 'transitive',
                   # Fix 36a: 'to' removed -- it is a contextual keyword
                   # (JLS 3.8) only inside module directives; as a plain
                   # identifier it is legal everywhere else (pattern
