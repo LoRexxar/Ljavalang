@@ -91,7 +91,15 @@ class Parser(object):
 
     def __init__(self, tokens):
         self.tokens = util.LookAheadListIterator(tokens)
-        self.tokens.set_default(EndOfInput(None))
+        # Fix: EndOfInput sentinel must carry a non-None value. It was
+        # constructed with None, so EOF-hot-paths like
+        # ``while token.value in '[.':`` (parse_expression_3) crashed with a
+        # bare TypeError on truncated files instead of raising
+        # JavaSyntaxError — a cut-off download (e.g. PdfProducer.java,
+        # 7680/12029 bytes) surfaced as an engine crash, not a parse error.
+        # '<EOF>' matches no grammar alternative, so every would_accept()
+        # fails and the parser reports a proper syntax error at end of input.
+        self.tokens.set_default(EndOfInput('<EOF>'))
 
         self.debug = False
 
