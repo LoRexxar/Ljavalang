@@ -64,12 +64,18 @@ class Keyword(JavaToken):
                   # FilterToSqlHelper.java broke the whole-file parse,
                   # hiding CVE-2026-76904).  accept('to') compares
                   # token.value only, so module parsing is unaffected.
-                  # Java 14+ yield
-                  'yield',
-                  # Java 16+ record
-                  'record',
                   # Java 17+ sealed (non-sealed handled as 3 tokens in parser)
                   'sealed', 'permits'])
+# Fix 61b: 'yield' (Java 14+) and 'record' (Java 16+) removed from the
+# reserved set -- they are contextual keywords (JLS 3.8) and legal plain
+# identifiers everywhere outside their specific syntactic positions.
+# Keeping them reserved broke: `boolean f(byte[] record)` (parameter
+# name, activemq StatsImpl.java) and `Thread.yield()` (selector
+# position, ActiveMQMessageConsumer.java:1494) -- whole-file
+# JavaSyntaxError hiding all downstream sinks.  Parser's
+# try_accept('yield') / accept('record') compare token.value only, so
+# the yield statement and record declaration still parse (same
+# approach as Fix 36a 'to' and Fix 53 'with').
 
 
 class Modifier(Keyword):

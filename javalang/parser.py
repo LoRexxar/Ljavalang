@@ -2248,7 +2248,10 @@ class Parser(object):
         elif isinstance(token, BasicType):
             base_type = self.parse_basic_type()
             base_type.dimensions = self.parse_array_dimension()
-            self.accept('.', 'class')
+            # Fix 61a: `int[]::new` — ArrayType method reference on a
+            # basic type; skip the mandatory .class when :: follows.
+            if not self.would_accept('::'):
+                self.accept('.', 'class')
 
             return tree.ClassReference(type=base_type)
 
@@ -2415,6 +2418,16 @@ class Parser(object):
     def parse_identifier_suffix(self):
         if self.try_accept('[', ']'):
             array_dimension = [None] + self.parse_array_dimension()
+            # Fix 61a: ArrayType method reference (JLS 15.13.1) —
+            # `String[]::new` / `int[]::new`.  After the dims a `::`
+            # follows instead of `.class`; the suffix returns an
+            # ArrayCreator-reference and the `::` handling in
+            # parse_expression_2's MethodReference path picks it up via
+            # would_accept('::') there.  We hand back a member named
+            # 'new' on the array type so downstream sees a uniform
+            # MethodReference(expression=Type[dims], method='new').
+            if self.would_accept('::'):
+                return tree.ClassReference(type=tree.Type(dimensions=array_dimension))
             self.accept('.', 'class')
             return tree.ClassReference(type=tree.Type(dimensions=array_dimension))
 
