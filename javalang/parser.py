@@ -306,15 +306,23 @@ class Parser(object):
 
         # Java 9+ module declaration
         # module-info.java: [open] module name { ... }
-        # 'open' is not a keyword, so check Identifier value too
+        # 'open' is not a keyword, so check Identifier value too.
+        # Fix 79c: 'module' is no longer a Keyword token either
+        # (contextual keyword, JLS 3.8; legal identifier in
+        # package/import names -- spinnaker kork, CVE-2026-32613),
+        # so match it by value on either token class.
+        def _is_module_tok(t):
+            return t is not None and (
+                (isinstance(t, (Keyword, Identifier)) and t.value == 'module'))
+
         next_tok = self.tokens.look()
         is_module = False
-        if isinstance(next_tok, Keyword) and next_tok.value == 'module':
+        if _is_module_tok(next_tok):
             is_module = True
         elif isinstance(next_tok, Identifier) and next_tok.value == 'open':
             # Check if 'open module ...'
             tok1 = self.tokens.look(1)
-            if isinstance(tok1, Keyword) and tok1.value == 'module':
+            if _is_module_tok(tok1):
                 is_module = True
         elif self.is_annotation():
             # Check for @Annotation module ... or @Annotation open module ...
@@ -322,11 +330,11 @@ class Parser(object):
             try:
                 self.parse_annotations()
                 t = self.tokens.look()
-                if isinstance(t, Keyword) and t.value == 'module':
+                if _is_module_tok(t):
                     is_module = True
                 elif isinstance(t, Identifier) and t.value == 'open':
                     t1 = self.tokens.look(1)
-                    if isinstance(t1, Keyword) and t1.value == 'module':
+                    if _is_module_tok(t1):
                         is_module = True
             except:
                 pass
@@ -2239,6 +2247,22 @@ class Parser(object):
                 identifier = self.parse_identifier()
                 qualified_identifier.append(identifier)
 
+            # Fix 79b: parameterized-type method reference (JLS 15.13) --
+            # `List<String>::stream`, `Map.Entry<K, V>::getKey`:
+            # type arguments immediately after the qualifier, then '::'.
+            # A bare '<' here can also be a less-than operator
+            # (`a < b`), so only commit when the angle-matching '>' is
+            # directly followed by '::' ('>::' cannot occur otherwise;
+            # the tokenizer splits '>>' into two '>' tokens).
+            if self.would_accept('<') and self._typeargs_then_method_ref():
+                type_arguments = self.parse_nonwildcard_type_arguments()
+                java_type = tree.ReferenceType(
+                    name='.'.join(qualified_identifier),
+                    arguments=type_arguments)
+                # '::' is consumed by parse_expression_2's
+                # MethodReference path, same as `Type::member`.
+                return tree.ClassReference(type=java_type)
+
             identifier_suffix = self.parse_identifier_suffix()
 
             if isinstance(identifier_suffix, (tree.MemberReference, tree.MethodInvocation)):
@@ -2423,6 +2447,30 @@ class Parser(object):
             return tree.ArrayCreator(dimensions=array_dimensions)
 
     @parse_debug
+    def _typeargs_then_method_ref(self):
+        """Fix 79b helper: lookahead scan starting at '<'.  Returns True
+        when the angle-matching '>' is immediately followed by '::',
+        i.e. the '<...>' is a type-argument list of a parameterized
+        method reference, not a less-than operator.  Depth counting is
+        safe here: inside type arguments only type tokens occur, and
+        the tokenizer already splits '>>' / '>>>' into single '>'s."""
+        depth = 0
+        i = 0
+        while True:
+            tok = self.tokens.look(i)
+            # EOF sentinel carries value '<EOF>' (not None) -- stop there
+            if tok is None or isinstance(tok, EndOfInput):
+                return False
+            value = tok.value
+            if value == '<':
+                depth += 1
+            elif value == '>':
+                depth -= 1
+                if depth == 0:
+                    nxt = self.tokens.look(i + 1)
+                    return nxt is not None and nxt.value == '::'
+            i += 1
+
     def parse_identifier_suffix(self):
         if self.try_accept('[', ']'):
             array_dimension = [None] + self.parse_array_dimension()

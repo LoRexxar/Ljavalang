@@ -55,8 +55,27 @@ class Keyword(JavaToken):
                   # deserialization sink).  accept('with'/'to') in the
                   # module-directive parsers compares token.value only,
                   # so module-info parsing is unaffected.
-                  'module', 'requires', 'exports', 'opens',
-                  'uses', 'provides', 'transitive',
+                  # Fix 79a: 'requires', 'exports', 'opens', 'uses',
+                  # 'provides', 'transitive' removed -- they are
+                  # contextual keywords (JLS 3.8) only inside module
+                  # directives; as plain identifiers they are legal
+                  # everywhere else (`String requires;` field in
+                  # spinnaker echo Trigger.java / PluginEvent.java,
+                  # CVE-2026-32613 -- the whole-file JavaSyntaxError hid
+                  # the SpEL evaluation path).  The module-directive
+                  # parsers accept() by token.value only, so
+                  # module-info parsing is unaffected (same approach as
+                  # Fix 36a 'to', Fix 53 'with', Fix 61b 'yield'/'record').
+                  # Fix 79c: 'module' removed as well -- also a
+                  # contextual keyword (JLS 3.8); as a plain identifier
+                  # it is legal in package/import names
+                  # (`import com.fasterxml.jackson.module.kotlin...`
+                  # in spinnaker kork Front50PluginsConfiguration.java,
+                  # CVE-2026-32613).  parse_compilation_unit's
+                  # module-declaration detection accepts Identifier
+                  # value 'module' too, and accept('module') in
+                  # parse_module compares token.value only, so
+                  # module-info parsing is unaffected.
                   # Fix 36a: 'to' removed -- it is a contextual keyword
                   # (JLS 3.8) only inside module directives; as a plain
                   # identifier it is legal everywhere else (pattern
