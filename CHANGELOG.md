@@ -2,6 +2,28 @@
 
 All notable changes to Ljavalang are documented in this file.
 
+## [v2.1.4] - 2026-11-21
+
+### Fix 63: explicit-generic invocations keep their real member
+
+- `parse_primary` 无条件用 qualified identifier 尾名覆写
+  `identifier_suffix.member`，显式泛型见证调用
+  `request.<String>getParameter("x")`（JLS 15.12）被改名为
+  member='request'/qualifier=''，callee 名被销毁——下游所有名字匹配
+  （source 注册表/sink 规则/CG 解析）全暗，实参却静默存活。
+  OpenAM 16.1.0 oauth2 语料 117 处（CVE-2026-44203 战役发现）。
+- 修复：仅 bare-name 后缀（member=None）取 pop 名；泛型后缀路径
+  保留 `parse_explicit_generic_invocation_suffix` 已设置的 member。
+  Selector 路径 `expr.<T>m()` 本就正确。
+- 验证：新增 5 单测；全套 148 passed/1 xfailed；冻结语料门 309 文件
+  100% 解析；AST 形状 A/B（venv 2.1.3 vs 修复树）冻结语料 0 文件变化。
+
+（v2.1.1~v2.1.3 未留 changelog：v2.1.1 contextual keywords
+'to'/'with'；v2.1.2 冻结语料门 309 文件 + Fix 61 语法缺口 + EOF
+sentinel 修复；v2.1.3 spinnaker 战役 Fix 79a/b/c 上下文关键字扩展
+requires/exports/opens/uses/provides/transitive/module + 参数化类型
+方法引用 `List<String>::stream`，git 侧记录见 195d803。）
+
 ## [v2.0.2] - 2026-05-22
 
 ### 打包与发布
