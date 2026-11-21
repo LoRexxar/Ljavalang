@@ -2266,9 +2266,16 @@ class Parser(object):
             identifier_suffix = self.parse_identifier_suffix()
 
             if isinstance(identifier_suffix, (tree.MemberReference, tree.MethodInvocation)):
-                # Take the last identifer as the member and leave the rest for the qualifier
-                identifier_suffix.member = qualified_identifier.pop()
-
+                # Fix 63 (Ljavalang): explicit-generic invocation suffix
+                # (`expr.<T>m(args)` / bare `<T>m(args)`) already carries
+                # its real member from parse_explicit_generic_invocation_
+                # suffix; only the bare-name suffix (member=None) takes
+                # the last qualified identifier as member.  The old
+                # unconditional clobber renamed `request.<String>
+                # getParameter(x)` to member='request'/qualifier='' and
+                # left the call dark for every downstream name match.
+                if identifier_suffix.member is None:
+                    identifier_suffix.member = qualified_identifier.pop()
             elif isinstance(identifier_suffix, tree.ClassReference):
                 identifier_suffix.type = tree.ReferenceType(name=qualified_identifier.pop())
 
